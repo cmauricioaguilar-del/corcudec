@@ -1,7 +1,11 @@
 import os
 import sys
+import hashlib
 
 sys.path.insert(0, os.path.dirname(__file__))
+
+def _sha256(s):
+    return hashlib.sha256(s.encode('utf-8')).hexdigest()
 
 from src.analisis import (
     cargar_datos, estadisticas_generales, analisis_por_departamento,
@@ -44,7 +48,12 @@ def main():
     }
 
     print("Generando reporte HTML...")
-    ruta = generar_reporte(stats, genero, nivel_df, dept_df, top_df, graficas, OUTPUT_HTML)
+    ruta = generar_reporte(
+        stats, genero, nivel_df, dept_df, top_df, graficas, OUTPUT_HTML,
+        df=df,
+        auth_user_hash=_sha256('admin'),
+        auth_pass_hash=_sha256('Corcudec2026'),
+    )
     print(f"\n✓ Reporte generado: {ruta}")
 
     print("\n=== RESUMEN ===")
