@@ -19,10 +19,126 @@ TEMPLATE_HTML = """
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--text); line-height: 1.6; }
-  header { background: var(--navy); color: var(--white); padding: 2.5rem 2rem 2rem; text-align: center; }
-  header h1 { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 600; letter-spacing: 0.02em; }
-  header p { color: rgba(255,255,255,0.75); margin-top: 0.4rem; font-size: 1rem; }
-  header .badge { display: inline-block; background: var(--gold); color: var(--white); font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.8rem; border-radius: 2rem; margin-top: 0.8rem; letter-spacing: 0.06em; }
+  header {
+    background: var(--navy);
+    border-top: 5px solid var(--gold);
+    border-bottom: 5px solid var(--gold);
+    display: flex;
+    align-items: stretch;
+    min-height: 155px;
+  }
+  .hdr-left {
+    flex: 1;
+    padding: 1.8rem 2rem 1.8rem 2.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .hdr-left h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+  .hdr-divider {
+    width: 1px;
+    background: rgba(255,255,255,0.12);
+    margin: 0;
+  }
+  .hdr-sub {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.88rem;
+    margin-top: 0.25rem;
+  }
+  .hdr-sub2 {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.88rem;
+    margin-top: 0.12rem;
+  }
+  .hdr-rule {
+    width: 100%;
+    max-width: 380px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.5;
+    margin: 0.55rem 0;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--white);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.22rem 0.9rem;
+    border-radius: 2rem;
+    letter-spacing: 0.06em;
+    margin-top: 0.3rem;
+    align-self: flex-start;
+  }
+  .hdr-right {
+    width: 300px;
+    flex-shrink: 0;
+    padding: 1rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .lidera-card {
+    background: #F7F4EF;
+    border-radius: 10px;
+    box-shadow: 2px 3px 14px rgba(0,0,0,0.22);
+    width: 100%;
+    padding: 1.1rem 1rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .lidera-by {
+    font-size: 0.65rem;
+    color: rgba(0,0,0,0.28);
+    font-style: italic;
+    margin-bottom: 0.45rem;
+    letter-spacing: 0.02em;
+  }
+  .lidera-wordmark {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #4a4a4a;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    margin-top: 0.3rem;
+  }
+  .lidera-gold-rule {
+    width: 110px;
+    height: 1.5px;
+    background: var(--gold);
+    opacity: 0.65;
+    margin: 0.55rem 0 0.4rem;
+  }
+  .lidera-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #3a3a3a;
+    letter-spacing: 0.01em;
+  }
+  .lidera-tagline {
+    font-size: 0.62rem;
+    color: #999;
+    font-style: italic;
+    margin-top: 0.18rem;
+    text-align: center;
+  }
+  @media (max-width: 700px) {
+    header { flex-direction: column; }
+    .hdr-right { width: 100%; border-top: 1px solid rgba(255,255,255,0.12); }
+    .hdr-divider { display: none; }
+  }
   main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
   section { margin-bottom: 2.5rem; }
   h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--navy); border-bottom: 2px solid var(--gold); padding-bottom: 0.4rem; margin-bottom: 1.2rem; }
@@ -108,9 +224,50 @@ TEMPLATE_HTML = """
 
 <div id="reportContent">
 <header>
-  <h1>Corporación Cultural Universidad de Concepción</h1>
-  <p>Análisis de Dotación y Bandas Salariales · Orquesta Sinfónica Universidad de Concepción</p>
-  <span class="badge">JULIO 2026 · {{ stats.total_empleados }} TRABAJADORES</span>
+  <div class="hdr-left">
+    <h1>Corporación Cultural<br>Universidad de Concepción</h1>
+    <div class="hdr-rule"></div>
+    <div class="hdr-sub">Orquesta Sinfónica Universidad de Concepción</div>
+    <div class="hdr-sub2">Análisis de Dotación y Bandas Salariales · Julio 2026</div>
+    <span class="badge">JULIO 2026 · {{ stats.total_empleados }} TRABAJADORES ACTIVOS</span>
+  </div>
+  <div class="hdr-divider"></div>
+  <div class="hdr-right">
+    <div class="lidera-card">
+      <div class="lidera-by">Análisis desarrollado por</div>
+      <!-- Bead columns SVG (centered) -->
+      <svg width="68" height="72" viewBox="0 0 68 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Orange column (left) -->
+        <ellipse cx="14" cy="8"  rx="7" ry="8"  fill="#D4623B"/>
+        <ellipse cx="14" cy="19" rx="3.5" ry="3" fill="#D4623B"/>
+        <ellipse cx="14" cy="28" rx="7" ry="8"  fill="#D4623B"/>
+        <ellipse cx="14" cy="39" rx="3.5" ry="3" fill="#D4623B"/>
+        <ellipse cx="14" cy="48" rx="7" ry="8"  fill="#D4623B"/>
+        <ellipse cx="14" cy="59" rx="3.5" ry="3" fill="#D4623B"/>
+        <ellipse cx="14" cy="68" rx="7" ry="4"  fill="#D4623B"/>
+        <!-- Purple column (center) -->
+        <ellipse cx="34" cy="8"  rx="7" ry="8"  fill="#7B3A8E"/>
+        <ellipse cx="34" cy="19" rx="3.5" ry="3" fill="#7B3A8E"/>
+        <ellipse cx="34" cy="28" rx="7" ry="8"  fill="#7B3A8E"/>
+        <ellipse cx="34" cy="39" rx="3.5" ry="3" fill="#7B3A8E"/>
+        <ellipse cx="34" cy="48" rx="7" ry="8"  fill="#7B3A8E"/>
+        <ellipse cx="34" cy="59" rx="3.5" ry="3" fill="#7B3A8E"/>
+        <ellipse cx="34" cy="68" rx="7" ry="4"  fill="#7B3A8E"/>
+        <!-- Teal column (right) -->
+        <ellipse cx="54" cy="8"  rx="7" ry="8"  fill="#259990"/>
+        <ellipse cx="54" cy="19" rx="3.5" ry="3" fill="#259990"/>
+        <ellipse cx="54" cy="28" rx="7" ry="8"  fill="#259990"/>
+        <ellipse cx="54" cy="39" rx="3.5" ry="3" fill="#259990"/>
+        <ellipse cx="54" cy="48" rx="7" ry="8"  fill="#259990"/>
+        <ellipse cx="54" cy="59" rx="3.5" ry="3" fill="#259990"/>
+        <ellipse cx="54" cy="68" rx="7" ry="4"  fill="#259990"/>
+      </svg>
+      <div class="lidera-wordmark">LIDERA</div>
+      <div class="lidera-gold-rule"></div>
+      <div class="lidera-name">Consultora Lidera</div>
+      <div class="lidera-tagline">Consultoría en Gestión de Personas y Organizaciones</div>
+    </div>
+  </div>
 </header>
 <main>
 
