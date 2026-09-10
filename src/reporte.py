@@ -183,6 +183,11 @@ TEMPLATE_HTML = """
   .login-btn { width: 100%; background: var(--navy); color: var(--white); border: none; border-radius: 6px; padding: 0.7rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s; margin-top: 0.4rem; }
   .login-btn:hover { background: #243f63; }
   .login-error { color: var(--red); font-size: 0.82rem; margin-top: 0.6rem; min-height: 1.2em; }
+  .login-lidera { border-top: 1px solid #e8e4de; margin-top: 1.4rem; padding-top: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+  .login-lidera-by { font-size: 0.62rem; color: #aaa; font-style: italic; }
+  .login-lidera-inner { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.3rem; }
+  .login-lidera-word { font-family: 'Source Sans 3', sans-serif; font-size: 1.25rem; font-weight: 700; color: #4a4a4a; letter-spacing: 0.07em; }
+  .login-lidera-name { font-size: 0.72rem; color: #888; margin-top: 0.15rem; }
   #reportContent { display: none; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 2rem 1rem; overflow-y: auto; }
   .modal-overlay.open { display: flex; }
@@ -219,6 +224,36 @@ TEMPLATE_HTML = """
     <input id="loginPass" class="login-field" type="password" placeholder="Contraseña" autocomplete="current-password">
     <button class="login-btn" id="loginBtn">Acceder</button>
     <div class="login-error" id="loginError"></div>
+    <div class="login-lidera">
+      <div class="login-lidera-by">Análisis desarrollado por</div>
+      <div class="login-lidera-inner">
+        <svg width="36" height="42" viewBox="0 0 68 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="14" cy="8"  rx="7" ry="8"  fill="#D4623B"/>
+          <ellipse cx="14" cy="19" rx="3.5" ry="3" fill="#D4623B"/>
+          <ellipse cx="14" cy="28" rx="7" ry="8"  fill="#D4623B"/>
+          <ellipse cx="14" cy="39" rx="3.5" ry="3" fill="#D4623B"/>
+          <ellipse cx="14" cy="48" rx="7" ry="8"  fill="#D4623B"/>
+          <ellipse cx="14" cy="59" rx="3.5" ry="3" fill="#D4623B"/>
+          <ellipse cx="14" cy="68" rx="7" ry="4"  fill="#D4623B"/>
+          <ellipse cx="34" cy="8"  rx="7" ry="8"  fill="#7B3A8E"/>
+          <ellipse cx="34" cy="19" rx="3.5" ry="3" fill="#7B3A8E"/>
+          <ellipse cx="34" cy="28" rx="7" ry="8"  fill="#7B3A8E"/>
+          <ellipse cx="34" cy="39" rx="3.5" ry="3" fill="#7B3A8E"/>
+          <ellipse cx="34" cy="48" rx="7" ry="8"  fill="#7B3A8E"/>
+          <ellipse cx="34" cy="59" rx="3.5" ry="3" fill="#7B3A8E"/>
+          <ellipse cx="34" cy="68" rx="7" ry="4"  fill="#7B3A8E"/>
+          <ellipse cx="54" cy="8"  rx="7" ry="8"  fill="#259990"/>
+          <ellipse cx="54" cy="19" rx="3.5" ry="3" fill="#259990"/>
+          <ellipse cx="54" cy="28" rx="7" ry="8"  fill="#259990"/>
+          <ellipse cx="54" cy="39" rx="3.5" ry="3" fill="#259990"/>
+          <ellipse cx="54" cy="48" rx="7" ry="8"  fill="#259990"/>
+          <ellipse cx="54" cy="59" rx="3.5" ry="3" fill="#259990"/>
+          <ellipse cx="54" cy="68" rx="7" ry="4"  fill="#259990"/>
+        </svg>
+        <span class="login-lidera-word">LIDERA</span>
+      </div>
+      <div class="login-lidera-name">Consultora Lidera</div>
+    </div>
   </div>
 </div>
 
