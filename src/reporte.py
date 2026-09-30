@@ -838,6 +838,7 @@ TEMPLATE_HTML = """
     <div class="inst-pill"><div class="inst-swatch" style="background:#1C3557"></div><span class="inst-name">CORCUDEC</span></div>
     <div class="inst-pill"><div class="inst-swatch" style="background:#C0392B"></div><span class="inst-name">TMS – Teatro Municipal de Santiago</span></div>
     <div class="inst-pill"><div class="inst-swatch" style="background:#259990"></div><span class="inst-name">CEAC – Universidad de Chile</span></div>
+    <div class="inst-pill"><div class="inst-swatch" style="background:#2E7D52;border-radius:50%"></div><span class="inst-name" style="color:#2E7D52">Mediana del sector (referencia)</span></div>
   </div>
   <div class="comp-wrap">
     <canvas id="chartComp" height="85"></canvas>
@@ -1182,8 +1183,36 @@ const COMP_DATA = {{ comp_json }};
     categoryPercentage: 0.88,
   }));
 
+  // Sector benchmark: combined median of all 3 institutions per category
+  const benchDS = {
+    type: 'line',
+    label: 'Mediana del sector',
+    data: CATS.map(cat => {
+      const allVals = INSTS.flatMap(inst =>
+        (COMP_DATA.empleados[inst] || [])
+          .filter(e => e.categoria === cat)
+          .map(e => e.remuneracion)
+      ).sort((a, b) => a - b);
+      if (!allVals.length) return null;
+      const mid = Math.floor(allVals.length / 2);
+      return (allVals.length % 2 === 0
+        ? (allVals[mid - 1] + allVals[mid]) / 2
+        : allVals[mid]) / 1e6;
+    }),
+    backgroundColor: '#2E7D52',
+    borderColor: '#2E7D52',
+    borderWidth: 0,
+    pointRadius: 9,
+    pointHoverRadius: 12,
+    pointBackgroundColor: '#2E7D52',
+    pointBorderColor: '#fff',
+    pointBorderWidth: 2.5,
+    showLine: false,
+    order: 0,
+  };
+
   const compChart = new Chart(document.getElementById('chartComp'), {
-    data: { labels: CAT_LABELS, datasets: [...bandDS, ...medDS] },
+    data: { labels: CAT_LABELS, datasets: [...bandDS, ...medDS, benchDS] },
     options: {
       responsive: true,
       onClick(e, els) {
@@ -1213,6 +1242,12 @@ const COMP_DATA = {{ comp_json }};
           filter: item => !item.dataset.label.startsWith('__med_'),
           callbacks: {
             label(ctx) {
+              if (ctx.dataset.label === 'Mediana del sector') {
+                const cat = CATS[ctx.dataIndex];
+                const n = INSTS.reduce((acc, inst) =>
+                  acc + (COMP_DATA.empleados[inst] || []).filter(e => e.categoria === cat).length, 0);
+                return `Mediana del sector: ${fmtClp(ctx.raw * 1e6)}  (n total=${n})`;
+              }
               const inst = ctx.dataset.label;
               const cat = CATS[ctx.dataIndex];
               const s = COMP_DATA.stats[cat] && COMP_DATA.stats[cat][inst];
