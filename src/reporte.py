@@ -421,6 +421,122 @@ def _cat_corcudec(nivel):
         return 'Artístico / Músicos'
     return 'Administrativo / Apoyo'
 
+_HOMOLOG = {
+    "Coordinación General y Artística": "DIRECTOR EJECUTIVO",
+    "Productor General":                "PRODUCTOR",
+    "Asistente de Dirección":           "SECRETARIA EJECUTIVA",
+    "Coordinador Orquesta":             "COORDINADOR ORQUESTA",
+    "Coordinadora Coro":                "AUXILIAR CORO ORQUESTA Y TEATRO",
+    "Coordinador BANCH":                "COORDINADOR ORQUESTA",
+    "Encargada Técnico":                "ENCARGADO TECNICOS",
+    "Encargado de Sonido y Video":      "TECNICO EN ILUMINACION",
+    "Coordinación y Prod. Artística":   "PRODUCTOR",
+    "Generalista de Personas":          "RECURSOS HUMANOS",
+    "Encargada de Personal y RRHH":     "RECURSOS HUMANOS",
+    "Encargada de Compras":             "ASISTENTE LOGISTICO",
+    "Asistente de Compras":             "ASISTENTE LOGISTICO",
+    "Encargada de Presupuesto":         "ENCARGADA DE CONTABILIDAD CONTROL Y SOPORTE",
+    "Encargada de Comunicaciones Estratégicas": "DIRECTORA  COMUNICACIONES",
+    "Encargada de Comunicaciones":      "DIRECTORA  COMUNICACIONES",
+    "Encargado Comercial y Fundraising":"PRODUCTOR",
+    "Analista de Proyectos":            "Sin equivalente CORCUDEC",
+    "Analista de Personal":             "RECURSOS HUMANOS",
+    "Analista Contable":                "ASISTENTE LOGISTICA Y CONTABILIDAD",
+    "Analista Comercial":               "Sin equivalente CORCUDEC",
+    "Asistente de Personas":            "RECURSOS HUMANOS",
+    "Community Manager – Com. y Marketing": "PERIODISTA",
+    "Diseñador Gráfico":                "AUDIOVISUALISTA",
+    "Coordinador de Plataformas Digitales": "AUDIOVISUALISTA",
+    "Encargada Área Educación Mediación":"Sin equivalente CORCUDEC",
+    "Audiovisual – Com. y Marketing":   "AUDIOVISUALISTA",
+    "Afinador de Piano":                "Sin equivalente CORCUDEC",
+    "Sonidista":                        "TECNICO EN ILUMINACION",
+    "Técnico Iluminación":              "TECNICO EN ILUMINACION",
+    "Técnico Sonido y Video":           "TECNICO EN ILUMINACION",
+    "Utilero Tramoya":                  "AUXILIAR ORQUESTA",
+    "Utilero Orquesta":                 "AUXILIAR ORQUESTA",
+    "Utilero Archivo Musical":          "ARCHIVOS MUSICALES Y COPISTERIA",
+    "Boletería":                        "ENCARGADA DE BOLETERIA",
+    "Estafeta":                         "ASISTENTE LOGISTICO",
+    "Portero":                          "PORTERO",
+    "Auxiliar de Servicios":            "AUXILIAR ORQUESTA",
+    "Auxiliar de Servicios Estafeta":   "ASISTENTE LOGISTICO",
+    "Nochero":                          "PORTERO",
+    "Masoterapeuta":                    "Sin equivalente CORCUDEC",
+    "Kinesiólogo":                      "Sin equivalente CORCUDEC",
+    "Vestuarista":                      "ENCARGADA DE CAMARINES",
+    "Prevencionista de Riesgo":         "Sin equivalente CORCUDEC",
+    "Administrador":                    "DIRECTOR EJECUTIVO",
+    "Encargado Iluminación":            "TECNICO EN ILUMINACION",
+    # TMS
+    "Concertino":                       "CONCERTINO",
+    "Concertmaster":                    "CONCERTINO",
+    "Tutti Dir. Violín":                "MUSICO TUTTI VIOLINES",
+    "Tutti Dir. Viento":                "MUSICO TUTTI TROMBON",
+    "Oboe Orquesta":                    "MUSICO JEFE DE FILA OBOE",
+    "Cuerpo de Baile 1":                "Sin equivalente CORCUDEC",
+    "Cuerpo de Baile 2":                "Sin equivalente CORCUDEC",
+    "Cuerpo de Baile 3":                "Sin equivalente CORCUDEC",
+    "Primera Bailarina":                "Sin equivalente CORCUDEC",
+    "Solista Ballet":                   "Sin equivalente CORCUDEC",
+    "Cantante Coro":                    "Sin equivalente CORCUDEC",
+    "Pianista Escuela de Ballet":       "Sin equivalente CORCUDEC",
+    "Inspectora Escuela de Ballet":     "SECRETARIA EJECUTIVA",
+    "Coordinadora Escuela de Ballet":   "COORDINADOR ORQUESTA",
+    "Director General":                 "DIRECTOR EJECUTIVO",
+    "Directora General":                "DIRECTOR EJECUTIVO",
+    "Director Artístico":               "DIRECTOR TITULAR DE LA ORQUESTA",
+    "Directora Municipal":              "DIRECTOR EJECUTIVO",
+    "Gerente General":                  "DIRECTOR EJECUTIVO",
+    "Director Técnico":                 "ENCARGADO TECNICOS",
+    "Sub-Directora de Comunicaciones":  "DIRECTORA  COMUNICACIONES",
+    "Jefa de Servicios Generales":      "ENCARGADO TECNICOS",
+    "Portería e Informaciones":         "PORTERO",
+    "Portería Boletería":               "ENCARGADA DE BOLETERIA",
+    "Asistente Contable":               "ASISTENTE LOGISTICA Y CONTABILIDAD",
+    "Asistente de Producción":          "ASISTENTE LOGISTICO",
+    "Asistente Dir. Tramoya II":        "AUXILIAR ORQUESTA",
+    "Encargada Comercial":              "PRODUCTOR",
+    "Copista Digital – Archivo Musical":"ARCHIVOS MUSICALES Y COPISTERIA",
+    "Archivo Musical Ballet":           "ARCHIVOS MUSICALES Y COPISTERIA",
+    "Tramoyero":                        "AUXILIAR ORQUESTA",
+    "Oficial Bienestar y Desarrollo Org.": "RECURSOS HUMANOS",
+    "Apoyo":                            "AUXILIAR ORQUESTA",
+}
+
+def _simplify_hom(corcudec_cargo):
+    if corcudec_cargo == 'Sin equivalente CORCUDEC':
+        return 'Sin equivalente'
+    c = corcudec_cargo.upper()
+    if 'DIRECTOR' in c:               return 'Director'
+    if 'ASISTENTE CONCERTINO' in c:   return 'Asistente Concertino'
+    if 'CONCERTINO' in c:             return 'Concertino'
+    if 'JEFE DE FILA' in c:           return 'Jefe de Fila'
+    if 'ASISTENTE DE FILA' in c or 'ASISTENTE  DE FILA' in c: return 'Asistente de Fila'
+    if 'TUTTI' in c:                  return 'Músico Tutti'
+    if 'MUSICO' in c and 'TROMBON' in c: return 'Músico Tutti'
+    if 'MUSICO' in c and 'VIOLINISTA' in c: return 'Músico Tutti'
+    if 'MUSICO' in c:                 return 'Músico'
+    if 'COORDINADOR ORQUESTA' in c:   return 'Coordinador Orquesta'
+    if 'AUXILIAR CORO' in c:          return 'Auxiliar Coro'
+    if 'AUXILIAR ORQUESTA' in c or 'AUXILIAR  ORQUESTA' in c: return 'Auxiliar'
+    if 'ARCHIVOS MUSICALES' in c or 'COPISTERIA' in c: return 'Archivos Musicales'
+    if 'TECNICO EN ILUMINACION' in c: return 'Técnico'
+    if 'ENCARGADO TECNICOS' in c:     return 'Jefe Técnico'
+    if 'RECURSOS HUMANOS' in c:       return 'RRHH'
+    if 'COMUNICACIONES' in c:         return 'Comunicaciones'
+    if 'PERIODISTA' in c:             return 'Comunicaciones'
+    if 'AUDIOVISUAL' in c:            return 'Comunicaciones'
+    if 'ASISTENTE LOGISTIC' in c:     return 'Asistente'
+    if 'PORTERO' in c:                return 'Portero'
+    if 'BOLETERIA' in c:              return 'Boletería'
+    if 'PRODUCTOR' in c:              return 'Producción'
+    if 'SECRETARIA' in c:             return 'Secretaría'
+    if 'CAMARINES' in c:              return 'Camarines'
+    if 'CONTABILIDAD' in c:           return 'Contabilidad'
+    if 'JEFATURA' in c:               return 'Jefatura'
+    return corcudec_cargo.title()
+
 def _build_comp_json(df_corcudec):
     CATS = ['Dirección y Gestión','Artístico / Músicos','Técnico / Escénico','Administrativo / Apoyo']
     INSTS = ['CORCUDEC','TMS','CEAC']
@@ -428,14 +544,19 @@ def _build_comp_json(df_corcudec):
     all_emp = {}
     # CEAC
     all_emp['CEAC'] = [{'nombre': n, 'cargo': c, 'area': '—', 'remuneracion': int(r),
-                         'categoria': _cat_ceac(c)} for n, c, r in _CEAC_RAW]
+                         'categoria': _cat_ceac(c),
+                         'cargo_hom': _simplify_hom(_HOMOLOG.get(c, 'Sin equivalente CORCUDEC'))}
+                        for n, c, r in _CEAC_RAW]
     # TMS
     all_emp['TMS'] = [{'nombre': n, 'cargo': c, 'area': a, 'remuneracion': int(r),
-                        'categoria': _cat_tms(c, a)} for n, c, a, r in _TMS_RAW]
+                        'categoria': _cat_tms(c, a),
+                        'cargo_hom': _simplify_hom(_HOMOLOG.get(c, 'Sin equivalente CORCUDEC'))}
+                       for n, c, a, r in _TMS_RAW]
     # CORCUDEC (no names — privacy)
     all_emp['CORCUDEC'] = [{'nombre': f"Trabajador {i+1}", 'cargo': row['cargo'],
                              'area': row['departamento'], 'remuneracion': int(row['total_haberes']),
-                             'categoria': _cat_corcudec(row['nivel'])}
+                             'categoria': _cat_corcudec(row['nivel']),
+                             'cargo_hom': _simplify_hom(row['cargo'])}
                             for i, row in df_corcudec.reset_index().iterrows()]
 
     def pct(vals, p):
@@ -674,6 +795,11 @@ TEMPLATE_HTML = """
   .inst-name { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.04em; color: var(--navy); }
   .comp-wrap { background: #fff; border-radius: 10px; padding: 1.4rem 1.4rem 1rem; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
   .chart-hint { font-size: 0.75rem; color: var(--muted); margin: 0.45rem 0 0; text-align: center; }
+  .comp-breadcrumb { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; flex-wrap: wrap; }
+  .comp-back-btn { background: var(--navy); color: #fff; border: none; border-radius: 6px; padding: 0.35rem 0.9rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; letter-spacing: 0.03em; }
+  .comp-back-btn:hover { background: #2a4f7c; }
+  .comp-breadcrumb-path { font-size: 0.82rem; color: var(--muted); }
+  .comp-breadcrumb-path strong { color: var(--navy); }
 </style>
 </head>
 <body>
@@ -840,10 +966,26 @@ TEMPLATE_HTML = """
     <div class="inst-pill"><div class="inst-swatch" style="background:#259990"></div><span class="inst-name">CEAC – Universidad de Chile</span></div>
     <div class="inst-pill"><div class="inst-swatch" style="background:#2E7D52;border-radius:50%"></div><span class="inst-name" style="color:#2E7D52">Mediana del sector (referencia)</span></div>
   </div>
-  <div class="comp-wrap">
-    <canvas id="chartComp" height="85"></canvas>
+  <!-- Nivel 1: mega-categorías -->
+  <div id="compLevel1">
+    <div class="comp-wrap">
+      <canvas id="chartComp" height="85"></canvas>
+    </div>
+    <p class="chart-hint">↑ Haz clic en una categoría para ver el desglose por cargo</p>
   </div>
-  <p class="chart-hint">↑ Haz clic en una banda para ver los integrantes de esa categoría e institución</p>
+
+  <!-- Nivel 2: cargos homologados dentro de una categoría -->
+  <div id="compLevel2" style="display:none">
+    <div class="comp-breadcrumb">
+      <button class="comp-back-btn" onclick="showCompLevel1()">← Todas las categorías</button>
+      <span class="comp-breadcrumb-path">Categoría: <strong id="compL2Cat"></strong></span>
+    </div>
+    <div class="comp-wrap">
+      <canvas id="chartComp2" height="95"></canvas>
+    </div>
+    <p class="chart-hint">↑ Haz clic en una banda para ver los trabajadores de ese cargo e institución</p>
+  </div>
+
   <div class="info-box" style="margin-top:1rem;font-size:0.78rem">
     <strong>Fuentes:</strong> CORCUDEC Julio 2026 (74 trabajadores activos) · TMS Diciembre 2025 · CEAC Mayo 2026.
     Las bandas muestran el rango P25–P75; el trazo central la mediana.
@@ -1218,11 +1360,12 @@ const COMP_DATA = {{ comp_json }};
       onClick(e, els) {
         if (!els.length) return;
         const ds = compChart.data.datasets[els[0].datasetIndex];
-        if (ds.label.startsWith('__med_')) return;
-        openCompDrill(CATS[els[0].index], ds.label);
+        if (ds.label.startsWith('__med_') || ds.label === 'Mediana del sector') return;
+        showCompLevel2(CATS[els[0].index]);
       },
       onHover(e, els) {
-        const vis = els.some(el => !compChart.data.datasets[el.datasetIndex].label.startsWith('__med_'));
+        const skip = ['__med_', 'Mediana del sector'];
+        const vis = els.some(el => !skip.some(s => compChart.data.datasets[el.datasetIndex].label.startsWith(s)));
         e.native.target.style.cursor = vis ? 'pointer' : 'default';
       },
       plugins: {
@@ -1271,31 +1414,178 @@ const COMP_DATA = {{ comp_json }};
     },
   });
 
-  window.openCompDrill = function(cat, inst) {
-    const emps = (COMP_DATA.empleados[inst] || []).filter(e => e.categoria === cat);
-    const s = COMP_DATA.stats[cat] && COMP_DATA.stats[cat][inst];
+  // ── Level 2: desglose por cargo homologado ────────────────
+  let compChart2 = null;
+
+  window.showCompLevel1 = function() {
+    document.getElementById('compLevel1').style.display = '';
+    document.getElementById('compLevel2').style.display = 'none';
+  };
+
+  window.showCompLevel2 = function(cat) {
+    document.getElementById('compL2Cat').textContent = cat;
+    document.getElementById('compLevel1').style.display = 'none';
+    document.getElementById('compLevel2').style.display = '';
+
+    // Collect all cargo_hom values for this category across all institutions
+    const cargoSet = new Set();
+    INSTS.forEach(inst => {
+      (COMP_DATA.empleados[inst] || [])
+        .filter(e => e.categoria === cat)
+        .forEach(e => cargoSet.add(e.cargo_hom));
+    });
+
+    // Sort: put 'Sin equivalente' last, rest alphabetically
+    const cargoLabels = [...cargoSet].sort((a, b) => {
+      if (a === 'Sin equivalente') return 1;
+      if (b === 'Sin equivalente') return -1;
+      return a.localeCompare(b, 'es');
+    });
+
+    // Helper: stats for a set of values
+    function calcStats(vals) {
+      if (!vals.length) return null;
+      const s = [...vals].sort((a, b) => a - b);
+      const mid = i => s[Math.min(i, s.length - 1)];
+      const p = frac => mid(Math.floor(s.length * frac));
+      const med = s.length % 2 === 0
+        ? (s[s.length / 2 - 1] + s[s.length / 2]) / 2
+        : s[Math.floor(s.length / 2)];
+      return { n: s.length, min: s[0], max: s[s.length-1],
+               median: med, p25: p(0.25), p75: p(0.75) };
+    }
+
+    // Band + median datasets per institution
+    const l2BandDS = INSTS.map(inst => ({
+      type: 'bar',
+      label: inst,
+      data: cargoLabels.map(ch => {
+        const vals = (COMP_DATA.empleados[inst] || [])
+          .filter(e => e.categoria === cat && e.cargo_hom === ch)
+          .map(e => e.remuneracion);
+        const s = calcStats(vals);
+        return s ? [s.p25 / 1e6, s.p75 / 1e6] : null;
+      }),
+      backgroundColor: COLORS[inst] + '55',
+      borderColor: COLORS[inst],
+      borderWidth: 1.5,
+      borderRadius: 3,
+      barPercentage: 0.72,
+      categoryPercentage: 0.88,
+    }));
+
+    const l2MedDS = INSTS.map(inst => ({
+      type: 'bar',
+      label: '__med2_' + inst,
+      data: cargoLabels.map(ch => {
+        const vals = (COMP_DATA.empleados[inst] || [])
+          .filter(e => e.categoria === cat && e.cargo_hom === ch)
+          .map(e => e.remuneracion);
+        const s = calcStats(vals);
+        if (!s) return null;
+        const half = s.median * 0.016 / 1e6;
+        return [s.median / 1e6 - half, s.median / 1e6 + half];
+      }),
+      backgroundColor: COLORS[inst],
+      borderColor: COLORS[inst],
+      borderWidth: 0,
+      borderRadius: 0,
+      barPercentage: 0.72,
+      categoryPercentage: 0.88,
+    }));
+
+    if (compChart2) compChart2.destroy();
+    compChart2 = new Chart(document.getElementById('chartComp2'), {
+      data: { labels: cargoLabels, datasets: [...l2BandDS, ...l2MedDS] },
+      options: {
+        responsive: true,
+        onClick(e, els) {
+          if (!els.length) return;
+          const ds = compChart2.data.datasets[els[0].datasetIndex];
+          if (ds.label.startsWith('__med2_')) return;
+          openCompDrill(cargoLabels[els[0].index], ds.label, 'cargo_hom');
+        },
+        onHover(e, els) {
+          const vis = els.some(el => !compChart2.data.datasets[el.datasetIndex].label.startsWith('__med2_'));
+          e.native.target.style.cursor = vis ? 'pointer' : 'default';
+        },
+        plugins: {
+          legend: {
+            labels: {
+              filter: item => !item.text.startsWith('__med2_'),
+              boxWidth: 13, boxHeight: 13,
+              color: '#1a1a2e', font: { size: 12, weight: '600' },
+            },
+          },
+          title: {
+            display: true,
+            text: 'Desglose por Cargo Homologado  ·  ' + cat,
+            font: { size: 13, weight: 'bold' }, color: '#1a1a2e',
+          },
+          tooltip: {
+            filter: item => !item.dataset.label.startsWith('__med2_'),
+            callbacks: {
+              label(ctx) {
+                const inst = ctx.dataset.label;
+                const ch = cargoLabels[ctx.dataIndex];
+                const vals = (COMP_DATA.empleados[inst] || [])
+                  .filter(e => e.categoria === cat && e.cargo_hom === ch)
+                  .map(e => e.remuneracion);
+                const s = calcStats(vals);
+                if (!s) return inst + ': sin datos';
+                return [
+                  inst + '  (n=' + s.n + ')',
+                  '  P25: ' + fmtClp(s.p25) + '   Mediana: ' + fmtClp(Math.round(s.median)) + '   P75: ' + fmtClp(s.p75),
+                ];
+              },
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 35 } },
+          y: {
+            ticks: { callback: v => '$' + Number(v).toFixed(1) + 'M' },
+            grid: { color: '#f0ede8' },
+            title: { display: true, text: 'Millones CLP', color: '#888', font: { size: 11 } },
+          },
+        },
+      },
+    });
+  };
+
+  // ── Level 3: modal de empleados (desde nivel 1 o nivel 2) ─
+  window.openCompDrill = function(filterVal, inst, filterField) {
+    filterField = filterField || 'categoria';
+    const emps = (COMP_DATA.empleados[inst] || []).filter(e => e[filterField] === filterVal);
+    const rems = emps.map(e => e.remuneracion).sort((a, b) => a - b);
+
+    // Inline stats
+    function pct(arr, f) { return arr[Math.min(Math.floor(arr.length * f), arr.length - 1)]; }
+    const med = rems.length % 2 === 0
+      ? (rems[rems.length/2-1] + rems[rems.length/2]) / 2 : rems[Math.floor(rems.length/2)];
+    const hasData = rems.length > 0;
+
     const showName = inst !== 'CORCUDEC';
+    document.getElementById('modalTitle').textContent = filterVal + '  ·  ' + inst;
+    document.getElementById('modalCount').textContent = emps.length + ' trabajadores';
 
-    document.getElementById('modalTitle').textContent = cat + '  ·  ' + inst;
-    document.getElementById('modalCount').textContent = (s ? s.n : 0) + ' trabajadores';
-
-    document.getElementById('modalStats').innerHTML = !s
+    document.getElementById('modalStats').innerHTML = !hasData
       ? '<p style="color:var(--muted)">Sin datos para esta combinación.</p>'
-      : `<div class="modal-stat"><label>Mediana</label><div class="val">${fmtClp(s.median)}</div></div>
-         <div class="modal-stat"><label>P25</label><div class="val">${fmtClp(s.p25)}</div></div>
-         <div class="modal-stat"><label>P75</label><div class="val">${fmtClp(s.p75)}</div></div>
-         <div class="modal-stat"><label>Máximo</label><div class="val">${fmtClp(s.max)}</div></div>`;
+      : `<div class="modal-stat"><label>Mediana</label><div class="val">${fmtClp(Math.round(med))}</div></div>
+         <div class="modal-stat"><label>P25</label><div class="val">${fmtClp(pct(rems, 0.25))}</div></div>
+         <div class="modal-stat"><label>P75</label><div class="val">${fmtClp(pct(rems, 0.75))}</div></div>
+         <div class="modal-stat"><label>Máximo</label><div class="val">${fmtClp(rems[rems.length-1])}</div></div>`;
 
     document.getElementById('modalThead').innerHTML = `<tr>
       <th>#</th>${showName ? '<th>Nombre</th>' : ''}
-      <th>Cargo</th><th>Área</th><th class="num">Remuneración</th>
+      <th>Cargo</th><th>Cargo Homologado</th><th>Área</th><th class="num">Remuneración</th>
     </tr>`;
 
     const sorted = [...emps].sort((a, b) => b.remuneracion - a.remuneracion);
     document.getElementById('modalTbody').innerHTML = sorted.map((e, i) => `<tr>
       <td>${i + 1}</td>
       ${showName ? '<td>' + e.nombre + '</td>' : ''}
-      <td>${e.cargo}</td><td>${e.area}</td>
+      <td>${e.cargo}</td><td>${e.cargo_hom}</td><td>${e.area}</td>
       <td class="num">${fmtClp(e.remuneracion)}</td>
     </tr>`).join('');
 
