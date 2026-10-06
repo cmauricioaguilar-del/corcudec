@@ -1097,6 +1097,23 @@ TEMPLATE_HTML = """
 </section>
 
 <section>
+  <h2>Comparativo Salarial Orquestal · CORCUDEC vs TMS</h2>
+  <div class="inst-legend">
+    <div class="inst-pill"><div class="inst-swatch" style="background:#1C3557"></div><span class="inst-name">CORCUDEC</span></div>
+    <div class="inst-pill"><div class="inst-swatch" style="background:#C0392B"></div><span class="inst-name">TMS – Teatro Municipal de Santiago</span></div>
+  </div>
+  <div class="comp-wrap">
+    <canvas id="chartOrch" height="90"></canvas>
+  </div>
+  <p class="chart-hint">↑ Haz clic en una banda para ver el detalle de los músicos</p>
+  <div class="info-box" style="margin-top:1rem;font-size:0.78rem">
+    <strong>Nota:</strong> Incluye exclusivamente músicos de orquesta. CEAC no cuenta con músicos en planta.
+    TMS muestra sólo personal del área Orquesta con cargo homologado. CORCUDEC incluye todos los músicos titulares.
+    Los nombres de trabajadores CORCUDEC están anonimizados.
+  </div>
+</section>
+
+<section>
   <h2>Equidad de Género</h2>
   <div class="chart-row">
     <div class="chart-box" style="grid-column: span 1"><img src="data:image/png;base64,{{ graficas.genero }}" alt="Equidad género"></div>
@@ -1654,6 +1671,123 @@ const COMP_DATA = {{ comp_json }};
       },
     });
   };
+
+  // ── Comparativo Orquestal CORCUDEC vs TMS ────────────────────────────────
+  (function() {
+    const ORCH_ORDER = ['Concertino','Asistente Concertino','Jefe de Fila','Asistente de Fila','Músico Tutti','Músico'];
+    const ORCH_INSTS = ['CORCUDEC','TMS'];
+    const ORCH_COLOR  = { CORCUDEC:'#1C3557', TMS:'#C0392B' };
+    const ORCH_ALPHA  = { CORCUDEC:'rgba(28,53,87,0.22)', TMS:'rgba(192,57,43,0.22)' };
+
+    const orchEmps = {
+      CORCUDEC: (COMP_DATA.empleados['CORCUDEC'] || []).filter(e => e.categoria === 'Artístico / Músicos'),
+      TMS:      (COMP_DATA.empleados['TMS']       || []).filter(e => ORCH_ORDER.includes(e.cargo_hom)),
+    };
+
+    function calcSt(vals) {
+      if (!vals.length) return null;
+      const s = [...vals].sort((a,b) => a-b);
+      const p = f => s[Math.min(Math.floor(s.length*f), s.length-1)];
+      const med = s.length%2===0 ? (s[s.length/2-1]+s[s.length/2])/2 : s[Math.floor(s.length/2)];
+      return { n:s.length, p25:p(0.25), median:med, p75:p(0.75), max:s[s.length-1] };
+    }
+
+    const bandDS = ORCH_INSTS.map(inst => ({
+      label: inst, type:'bar',
+      backgroundColor: ORCH_ALPHA[inst], borderColor: ORCH_COLOR[inst],
+      borderWidth:1.5, borderSkipped:false,
+      barPercentage:0.38, categoryPercentage:0.8,
+      data: ORCH_ORDER.map(role => {
+        const st = calcSt(orchEmps[inst].filter(e=>e.cargo_hom===role).map(e=>e.remuneracion));
+        return st ? [st.p25, st.p75] : null;
+      }),
+    }));
+
+    const medDS = ORCH_INSTS.map(inst => ({
+      label:'__om_'+inst, type:'bar',
+      backgroundColor: ORCH_COLOR[inst], borderWidth:0, borderSkipped:false,
+      barPercentage:0.38, categoryPercentage:0.8,
+      data: ORCH_ORDER.map(role => {
+        const st = calcSt(orchEmps[inst].filter(e=>e.cargo_hom===role).map(e=>e.remuneracion));
+        if (!st) return null;
+        const h = Math.max((st.p75-st.p25)*0.04, 20000);
+        return [st.median-h, st.median+h];
+      }),
+    }));
+
+    const orchChart = new Chart(document.getElementById('chartOrch'), {
+      type:'bar',
+      data:{ labels: ORCH_ORDER, datasets:[...bandDS,...medDS] },
+      options:{
+        responsive:true, animation:false,
+        plugins:{
+          legend:{ labels:{ filter: i=>!i.text.startsWith('__'), color:'#444', font:{size:12} }},
+          title:{
+            display:true,
+            text:'Bandas Salariales por Posición Orquestal  ·  P25 — Mediana — P75',
+            color:'#1C3557', font:{size:13,weight:'600'}, padding:{bottom:16},
+          },
+          tooltip:{
+            callbacks:{
+              label(ctx) {
+                if (ctx.dataset.label.startsWith('__')) return null;
+                const inst = ctx.dataset.label;
+                const role = ORCH_ORDER[ctx.dataIndex];
+                const st = calcSt(orchEmps[inst].filter(e=>e.cargo_hom===role).map(e=>e.remuneracion));
+                if (!st) return inst+': sin datos';
+                return [inst+' (n='+st.n+')',
+                  '  P25: '+fmtClp(st.p25),
+                  '  Med: '+fmtClp(Math.round(st.median)),
+                  '  P75: '+fmtClp(st.p75)];
+              }
+            }
+          }
+        },
+        onClick(e, els) {
+          if (!els.length) return;
+          const ds = orchChart.data.datasets[els[0].datasetIndex];
+          if (ds.label.startsWith('__')) return;
+          openOrchDrill(ORCH_ORDER[els[0].index], ds.label);
+        },
+        scales:{
+          x:{ stacked:false, ticks:{color:'#444',font:{size:11}}, grid:{display:false} },
+          y:{
+            ticks:{ color:'#888', callback: v=>'$'+(v/1e6).toFixed(1)+'M' },
+            grid:{ color:'#f0ede8' },
+            title:{ display:true, text:'Millones CLP', color:'#888', font:{size:11} },
+          }
+        }
+      }
+    });
+
+    window.openOrchDrill = function(role, inst) {
+      const emps = orchEmps[inst].filter(e=>e.cargo_hom===role);
+      const rems = emps.map(e=>e.remuneracion).sort((a,b)=>a-b);
+      function pct(a,f){ return a[Math.min(Math.floor(a.length*f),a.length-1)]; }
+      const med = rems.length%2===0?(rems[rems.length/2-1]+rems[rems.length/2])/2:rems[Math.floor(rems.length/2)];
+      const showName = inst!=='CORCUDEC';
+      document.getElementById('modalTitle').textContent = role+'  ·  '+inst;
+      document.getElementById('modalCount').textContent = emps.length+' músicos';
+      document.getElementById('modalStats').innerHTML = !rems.length
+        ? '<p style="color:var(--muted)">Sin datos.</p>'
+        : `<div class="modal-stat"><label>Mediana</label><div class="val">${fmtClp(Math.round(med))}</div></div>
+           <div class="modal-stat"><label>P25</label><div class="val">${fmtClp(pct(rems,0.25))}</div></div>
+           <div class="modal-stat"><label>P75</label><div class="val">${fmtClp(pct(rems,0.75))}</div></div>
+           <div class="modal-stat"><label>Máximo</label><div class="val">${fmtClp(rems[rems.length-1])}</div></div>`;
+      document.getElementById('modalThead').innerHTML = `<tr>
+        <th>#</th>${showName?'<th>Nombre</th>':''}
+        <th>Cargo original</th><th>Cargo homologado</th><th class="num">Remuneración</th>
+      </tr>`;
+      const sorted = [...emps].sort((a,b)=>b.remuneracion-a.remuneracion);
+      document.getElementById('modalTbody').innerHTML = sorted.map((e,i)=>`<tr>
+        <td>${i+1}</td>${showName?'<td>'+e.nombre+'</td>':''}
+        <td>${e.cargo}</td><td>${e.cargo_hom}</td>
+        <td class="num">${fmtClp(e.remuneracion)}</td>
+      </tr>`).join('');
+      overlay.classList.add('open');
+      document.body.style.overflow='hidden';
+    };
+  })();
 
   // ── Level 3: modal de empleados (desde nivel 1 o nivel 2) ─
   window.openCompDrill = function(filterVal, inst, filterField) {
