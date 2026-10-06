@@ -1908,6 +1908,15 @@ def _build_expl_data(df_corcudec):
             'categoria': _cat_tms(c, a),
             'rem': int(r),
         })
+    for n, c, r in _CEAC_RAW:
+        emps.append({
+            'inst': 'CEAC',
+            'nombre': n,
+            'cargo': c,
+            'cargo_hom': _simplify_hom(_HOMOLOG.get(c, 'Sin equivalente CORCUDEC')),
+            'categoria': _cat_ceac(c),
+            'rem': int(r),
+        })
     return emps
 
 
@@ -1916,14 +1925,15 @@ TEMPLATE_EXPL = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Explorador Salarial · CORCUDEC & TMS</title>
+<title>Explorador Salarial · CORCUDEC, TMS & CEAC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap">
 <style>
 :root{
   --navy:#1C3557;--navy-light:#2a4f7c;--gold:#B8892A;--cream:#F7F4EF;
   --red:#C0392B;--red-light:rgba(192,57,43,0.12);
-  --navy-light2:rgba(28,53,87,0.1);
+  --teal:#259990;--teal-light:rgba(37,153,144,0.12);
+  --navy-bg:rgba(28,53,87,0.1);
   --border:#e2ddd6;--muted:#888;--text:#2c2c2c;
   --radius:8px;
 }
@@ -1961,8 +1971,9 @@ header h1{font-family:'Playfair Display',serif;font-size:1.15rem;letter-spacing:
 .filter-group select:focus,.filter-group input:focus{border-color:var(--navy)}
 .inst-checks{display:flex;gap:0.5rem}
 .inst-check{display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;cursor:pointer;padding:0.35rem 0.65rem;border-radius:6px;border:1.5px solid var(--border);user-select:none;font-weight:500;transition:all 0.15s}
-.inst-check.active-COR{border-color:var(--navy);background:var(--navy-light2);color:var(--navy)}
+.inst-check.active-COR{border-color:var(--navy);background:var(--navy-bg);color:var(--navy)}
 .inst-check.active-TMS{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.inst-check.active-CEA{border-color:var(--teal);background:var(--teal-light);color:var(--teal)}
 .inst-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .range-inputs{display:flex;gap:0.3rem;align-items:center}
 .range-inputs input{width:90px;min-width:unset}
@@ -1982,7 +1993,7 @@ header h1{font-family:'Playfair Display',serif;font-size:1.15rem;letter-spacing:
 /* ── TABLES ── */
 .tbl-wrap{overflow-x:auto;padding:1rem 1.5rem}
 table{border-collapse:collapse;width:100%;font-size:0.83rem}
-thead th{background:var(--navy);color:#fff;padding:0.6rem 0.75rem;text-align:left;white-space:nowrap;font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0}
+thead th{background:var(--navy);color:#fff;padding:0.6rem 0.75rem;text-align:left;white-space:nowrap;font-weight:600;cursor:pointer;user-select:none}
 thead th:hover{background:var(--navy-light)}
 thead th.sort-asc::after{content:' ↑'}
 thead th.sort-desc::after{content:' ↓'}
@@ -1991,14 +2002,40 @@ tbody tr:hover{background:rgba(184,137,42,0.08)}
 td{padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);vertical-align:middle}
 td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .inst-badge{display:inline-block;padding:0.15rem 0.55rem;border-radius:12px;font-size:0.73rem;font-weight:600;letter-spacing:0.03em}
-.inst-badge.CORCUDEC{background:var(--navy-light2);color:var(--navy)}
+.inst-badge.CORCUDEC{background:var(--navy-bg);color:var(--navy)}
 .inst-badge.TMS{background:var(--red-light);color:var(--red)}
+.inst-badge.CEAC{background:var(--teal-light);color:var(--teal)}
 .no-data{text-align:center;padding:2rem;color:var(--muted);font-size:0.9rem}
 
 /* grouped tables */
+.grp-table{font-size:0.8rem}
 .grp-table td.good{color:#2E7D52;font-weight:600}
 .grp-table td.warn{color:var(--red);font-weight:600}
 .grp-table td.neutral{color:var(--muted)}
+.grp-table td.muted-val{font-size:0.74rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── DELTA TOOLTIP ── */
+.delta-cell{position:relative;cursor:help}
+.delta-tip{
+  display:none;position:absolute;right:0;bottom:calc(100% + 5px);
+  background:#1a1a1a;color:#fff;font-size:0.71rem;font-weight:400;
+  padding:0.3rem 0.6rem;border-radius:5px;white-space:nowrap;
+  z-index:50;pointer-events:none;
+  box-shadow:0 2px 10px rgba(0,0,0,0.3);
+}
+.delta-tip::after{
+  content:'';position:absolute;top:100%;right:14px;
+  border:4px solid transparent;border-top-color:#1a1a1a;
+}
+.delta-cell:hover .delta-tip{display:block}
+
+/* ── ACCORDION CATEGORIES ── */
+.cat-row{cursor:pointer}
+.cat-row:hover{background:rgba(28,53,87,0.06) !important}
+.expand-arrow{display:inline-block;font-size:0.7rem;margin-right:0.35rem;transition:transform 0.15s;color:var(--muted)}
+.sub-row td:first-child{padding-left:2rem;color:var(--muted);font-size:0.79rem}
+.sub-row{background:#fefdfb}
+.sub-row:hover{background:rgba(184,137,42,0.05) !important}
 </style>
 </head>
 <body>
@@ -2007,7 +2044,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 <div id="loginOverlay">
   <div class="login-card">
     <h1>Explorador Salarial</h1>
-    <p>CORCUDEC & TMS · Datos confidenciales</p>
+    <p>CORCUDEC, TMS & CEAC · Datos confidenciales</p>
     <label>Usuario</label>
     <input type="text" id="eUser" placeholder="usuario" autocomplete="username">
     <label>Contraseña</label>
@@ -2022,7 +2059,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
   <header>
     <div>
       <h1>Explorador Salarial</h1>
-      <div class="header-sub">CORCUDEC & TMS · Datos confidenciales · Julio 2026</div>
+      <div class="header-sub">CORCUDEC, TMS & CEAC · Datos confidenciales · Julio 2026</div>
     </div>
     <div class="header-actions">
       <a class="btn-back" href="index.html">← Volver al reporte</a>
@@ -2040,6 +2077,9 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
         </div>
         <div class="inst-check active-TMS" id="chkTMS" onclick="toggleInst('TMS')">
           <span class="inst-dot" style="background:#C0392B"></span>TMS
+        </div>
+        <div class="inst-check active-CEA" id="chkCEA" onclick="toggleInst('CEAC')">
+          <span class="inst-dot" style="background:#259990"></span>CEAC
         </div>
       </div>
     </div>
@@ -2100,36 +2140,40 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 
   <div id="viewCargo" class="tbl-wrap" style="display:none">
     <table id="tblCargo" class="grp-table">
-      <thead><tr>
-        <th>Cargo homologado</th>
-        <th colspan="3" style="text-align:center;background:#1C3557">CORCUDEC</th>
-        <th colspan="3" style="text-align:center;background:#C0392B">TMS</th>
-        <th>Δ Mediana</th>
-      </tr>
-      <tr>
-        <th></th>
-        <th>n</th><th>Mediana</th><th>Rango</th>
-        <th>n</th><th>Mediana</th><th>Rango</th>
-        <th></th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th rowspan="2">Cargo homologado</th>
+          <th colspan="3" style="text-align:center;background:#1C3557">CORCUDEC</th>
+          <th colspan="3" style="text-align:center;background:#C0392B">TMS</th>
+          <th colspan="3" style="text-align:center;background:#259990">CEAC</th>
+          <th rowspan="2">Δ Mediana</th>
+        </tr>
+        <tr>
+          <th>n</th><th>Mediana</th><th>Rango</th>
+          <th>n</th><th>Mediana</th><th>Rango</th>
+          <th>n</th><th>Mediana</th><th>Rango</th>
+        </tr>
+      </thead>
       <tbody id="tbodyCargo"></tbody>
     </table>
   </div>
 
   <div id="viewCategoria" class="tbl-wrap" style="display:none">
     <table id="tblCategoria" class="grp-table">
-      <thead><tr>
-        <th>Categoría</th>
-        <th colspan="3" style="text-align:center;background:#1C3557">CORCUDEC</th>
-        <th colspan="3" style="text-align:center;background:#C0392B">TMS</th>
-        <th>Δ Mediana</th>
-      </tr>
-      <tr>
-        <th></th>
-        <th>n</th><th>Mediana</th><th>Rango</th>
-        <th>n</th><th>Mediana</th><th>Rango</th>
-        <th></th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:170px">Categoría</th>
+          <th colspan="3" style="text-align:center;background:#1C3557">CORCUDEC</th>
+          <th colspan="3" style="text-align:center;background:#C0392B">TMS</th>
+          <th colspan="3" style="text-align:center;background:#259990">CEAC</th>
+          <th rowspan="2">Δ Mediana</th>
+        </tr>
+        <tr>
+          <th>n</th><th>Mediana</th><th>Rango</th>
+          <th>n</th><th>Mediana</th><th>Rango</th>
+          <th>n</th><th>Mediana</th><th>Rango</th>
+        </tr>
+      </thead>
       <tbody id="tbodyCategoria"></tbody>
     </table>
   </div>
@@ -2160,17 +2204,18 @@ document.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
 const ALL_EMPS = {{ emps_json }};
 
 const fmtClp = v => '$'+Math.round(v).toLocaleString('es-CL');
-const fmtM   = v => '$'+(v/1e6).toFixed(2)+'M';
 function median(arr) {
   if (!arr.length) return null;
   const s=[...arr].sort((a,b)=>a-b);
   return s.length%2===0?(s[s.length/2-1]+s[s.length/2])/2:s[Math.floor(s.length/2)];
 }
+const rng = a => a.length ? fmtClp(Math.min(...a))+' – '+fmtClp(Math.max(...a)) : '—';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
-let instOn = {CORCUDEC:true, TMS:true};
+let instOn = {CORCUDEC:true, TMS:true, CEAC:true};
 let sortKey = 'rem', sortDir = -1;
 let currentView = 'detalle';
+let _catDataCache = null;
 
 // Populate cargo dropdown
 (function(){
@@ -2207,10 +2252,12 @@ function updateSummary(data) {
   const med  = median(rems);
   const nCOR = data.filter(e=>e.inst==='CORCUDEC').length;
   const nTMS = data.filter(e=>e.inst==='TMS').length;
+  const nCEA = data.filter(e=>e.inst==='CEAC').length;
   document.getElementById('summaryBar').innerHTML =
     `<span class="stat-pill">Total: <strong>${data.length}</strong></span>
      <span class="stat-pill">CORCUDEC: <strong>${nCOR}</strong></span>
-     <span class="stat-pill">TMS: <strong>${nTMS}</strong></span>` +
+     <span class="stat-pill">TMS: <strong>${nTMS}</strong></span>
+     <span class="stat-pill">CEAC: <strong>${nCEA}</strong></span>` +
     (med ? `<span class="stat-pill">Mediana: <strong>${fmtClp(Math.round(med))}</strong></span>` : '') +
     (rems.length ? `<span class="stat-pill">Rango: <strong>${fmtClp(Math.min(...rems))} — ${fmtClp(Math.max(...rems))}</strong></span>` : '');
 }
@@ -2234,11 +2281,7 @@ function renderDetalle(data) {
         <td class="num">${fmtClp(e.rem)}</td>
       </tr>`).join('')
     : '<tr><td colspan="7" class="no-data">No hay registros que coincidan con los filtros.</td></tr>';
-
-  // Update sort indicators
-  document.querySelectorAll('#tblDetalle thead th').forEach(th=>{
-    th.classList.remove('sort-asc','sort-desc');
-  });
+  document.querySelectorAll('#tblDetalle thead th').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
 }
 
 let _cols = ['n','inst','nombre','cargo','cargo_hom','categoria','rem'];
@@ -2250,67 +2293,131 @@ function sortBy(key) {
   applyFilters();
 }
 
+// ── HELPERS GRUPALES ─────────────────────────────────────────────────────
+function deltaHtml(mc, others_rems) {
+  if (!mc || !others_rems.length) return '<td class="num neutral delta-cell">—<span class="delta-tip">CORCUDEC vs promedio TMS + CEAC</span></td>';
+  const mo = median(others_rems);
+  if (!mo) return '<td class="num neutral delta-cell">—<span class="delta-tip">CORCUDEC vs promedio TMS + CEAC</span></td>';
+  const pct = ((mo - mc) / mc * 100).toFixed(1);
+  const cls = pct > 10 ? 'good' : pct < -10 ? 'warn' : 'neutral';
+  const sign = pct > 0 ? '+' : '';
+  return `<td class="num ${cls} delta-cell">${sign}${pct}%<span class="delta-tip">CORCUDEC vs promedio TMS + CEAC</span></td>`;
+}
+
+function grpRow(label, cor, tms, cea, indent) {
+  const mc = median(cor), mt = median(tms), mce = median(cea);
+  const others = [...tms, ...cea];
+  const labelCell = indent
+    ? `<td class="sub-indent"><span style="color:var(--muted);margin-right:0.3rem">└</span>${label}</td>`
+    : `<td><strong>${label}</strong></td>`;
+  return `<tr${indent ? ' class="sub-row"' : ''}>
+    ${labelCell}
+    <td>${cor.length||'—'}</td>
+    <td class="num">${mc?fmtClp(Math.round(mc)):'—'}</td>
+    <td class="muted-val">${rng(cor)}</td>
+    <td>${tms.length||'—'}</td>
+    <td class="num">${mt?fmtClp(Math.round(mt)):'—'}</td>
+    <td class="muted-val">${rng(tms)}</td>
+    <td>${cea.length||'—'}</td>
+    <td class="num">${mce?fmtClp(Math.round(mce)):'—'}</td>
+    <td class="muted-val">${rng(cea)}</td>
+    ${deltaHtml(mc, others)}
+  </tr>`;
+}
+
 // ── POR CARGO ─────────────────────────────────────────────────────────────
 function renderCargo(data) {
   const cargos = [...new Set(data.map(e=>e.cargo_hom))].sort((a,b)=>a.localeCompare(b,'es'));
-  if (!cargos.length) { document.getElementById('tbodyCargo').innerHTML='<tr><td colspan="8" class="no-data">Sin datos.</td></tr>'; return; }
-  document.getElementById('tbodyCargo').innerHTML = cargos.map(c=>{
+  if (!cargos.length) { document.getElementById('tbodyCargo').innerHTML='<tr><td colspan="11" class="no-data">Sin datos.</td></tr>'; return; }
+  document.getElementById('tbodyCargo').innerHTML = cargos.map(c => {
     const cor = data.filter(e=>e.inst==='CORCUDEC'&&e.cargo_hom===c).map(e=>e.rem);
     const tms = data.filter(e=>e.inst==='TMS'&&e.cargo_hom===c).map(e=>e.rem);
-    const mc  = median(cor), mt = median(tms);
-    let diff='—', cls='neutral';
-    if (mc&&mt) {
-      const pct=((mt-mc)/mc*100).toFixed(1);
-      diff=(pct>0?'+':'')+pct+'%';
-      cls = pct>10?'good':pct<-10?'warn':'neutral';
-    }
-    const rng = a => a.length?fmtClp(Math.min(...a))+' – '+fmtClp(Math.max(...a)):'—';
-    return `<tr>
-      <td><strong>${c}</strong></td>
+    const cea = data.filter(e=>e.inst==='CEAC'&&e.cargo_hom===c).map(e=>e.rem);
+    return grpRow(c, cor, tms, cea, false);
+  }).join('');
+}
+
+// ── POR CATEGORÍA (con acordeón) ──────────────────────────────────────────
+const CATS = ['Dirección y Gestión','Artístico / Músicos','Técnico / Escénico','Administrativo / Apoyo'];
+
+function renderCategoria(data) {
+  _catDataCache = data;
+  document.getElementById('tbodyCategoria').innerHTML = CATS.map(cat => {
+    const cor = data.filter(e=>e.inst==='CORCUDEC'&&e.categoria===cat).map(e=>e.rem);
+    const tms = data.filter(e=>e.inst==='TMS'&&e.categoria===cat).map(e=>e.rem);
+    const cea = data.filter(e=>e.inst==='CEAC'&&e.categoria===cat).map(e=>e.rem);
+    const mc = median(cor), mt = median(tms), mce = median(cea);
+    const others = [...tms, ...cea];
+    return `<tr class="cat-row" data-cat="${cat}" data-expanded="false" onclick="toggleCatExpand(this)">
+      <td><span class="expand-arrow">▶</span><strong>${cat}</strong></td>
       <td>${cor.length||'—'}</td>
       <td class="num">${mc?fmtClp(Math.round(mc)):'—'}</td>
-      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(cor)}</td>
+      <td class="muted-val">${rng(cor)}</td>
       <td>${tms.length||'—'}</td>
       <td class="num">${mt?fmtClp(Math.round(mt)):'—'}</td>
-      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(tms)}</td>
-      <td class="num ${cls}">${diff}</td>
+      <td class="muted-val">${rng(tms)}</td>
+      <td>${cea.length||'—'}</td>
+      <td class="num">${mce?fmtClp(Math.round(mce)):'—'}</td>
+      <td class="muted-val">${rng(cea)}</td>
+      ${deltaHtml(mc, others)}
     </tr>`;
   }).join('');
 }
 
-// ── POR CATEGORÍA ─────────────────────────────────────────────────────────
-function renderCategoria(data) {
-  const CATS=['Dirección y Gestión','Artístico / Músicos','Técnico / Escénico','Administrativo / Apoyo'];
-  document.getElementById('tbodyCategoria').innerHTML = CATS.map(cat=>{
-    const cor = data.filter(e=>e.inst==='CORCUDEC'&&e.categoria===cat).map(e=>e.rem);
-    const tms = data.filter(e=>e.inst==='TMS'&&e.categoria===cat).map(e=>e.rem);
-    const mc  = median(cor), mt = median(tms);
-    let diff='—', cls='neutral';
-    if (mc&&mt) {
-      const pct=((mt-mc)/mc*100).toFixed(1);
-      diff=(pct>0?'+':'')+pct+'%';
-      cls = pct>10?'good':pct<-10?'warn':'neutral';
-    }
-    const rng = a => a.length?fmtClp(Math.min(...a))+' – '+fmtClp(Math.max(...a)):'—';
-    return `<tr>
-      <td><strong>${cat}</strong></td>
+function toggleCatExpand(tr) {
+  const cat = tr.dataset.cat;
+  const expanded = tr.dataset.expanded === 'true';
+  const tbody = tr.parentNode;
+
+  // Remove existing sub-rows for this category
+  [...tbody.querySelectorAll(`.sub-row[data-cat="${cat}"]`)].forEach(r => r.remove());
+
+  const arrow = tr.querySelector('.expand-arrow');
+  if (expanded) {
+    tr.dataset.expanded = 'false';
+    arrow.textContent = '▶';
+    arrow.style.transform = '';
+    return;
+  }
+
+  // Build sub-rows grouped by cargo_hom within this category
+  const data = (_catDataCache || []).filter(e => e.categoria === cat);
+  const cargos = [...new Set(data.map(e => e.cargo_hom))].sort((a,b) => a.localeCompare(b,'es'));
+  const html = cargos.map(cargo => {
+    const cor = data.filter(e=>e.inst==='CORCUDEC'&&e.cargo_hom===cargo).map(e=>e.rem);
+    const tms = data.filter(e=>e.inst==='TMS'&&e.cargo_hom===cargo).map(e=>e.rem);
+    const cea = data.filter(e=>e.inst==='CEAC'&&e.cargo_hom===cargo).map(e=>e.rem);
+    const mc = median(cor), mt = median(tms), mce = median(cea);
+    const others = [...tms, ...cea];
+    return `<tr class="sub-row" data-cat="${cat}">
+      <td style="padding-left:2rem"><span style="color:var(--muted);margin-right:0.3rem">└</span>${cargo}</td>
       <td>${cor.length||'—'}</td>
       <td class="num">${mc?fmtClp(Math.round(mc)):'—'}</td>
-      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(cor)}</td>
+      <td class="muted-val">${rng(cor)}</td>
       <td>${tms.length||'—'}</td>
       <td class="num">${mt?fmtClp(Math.round(mt)):'—'}</td>
-      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(tms)}</td>
-      <td class="num ${cls}">${diff}</td>
+      <td class="muted-val">${rng(tms)}</td>
+      <td>${cea.length||'—'}</td>
+      <td class="num">${mce?fmtClp(Math.round(mce)):'—'}</td>
+      <td class="muted-val">${rng(cea)}</td>
+      ${deltaHtml(mc, others)}
     </tr>`;
   }).join('');
+
+  tr.insertAdjacentHTML('afterend', html);
+  tr.dataset.expanded = 'true';
+  arrow.textContent = '▼';
+  arrow.style.transform = 'translateY(1px)';
 }
 
 // ── CONTROLS ──────────────────────────────────────────────────────────────
+const INST_CLS = {CORCUDEC:'active-COR', TMS:'active-TMS', CEAC:'active-CEA'};
+const INST_ID  = {CORCUDEC:'chkCOR', TMS:'chkTMS', CEAC:'chkCEA'};
+
 function toggleInst(inst) {
   instOn[inst] = !instOn[inst];
-  const el = document.getElementById('chk'+inst.slice(0,3));
-  const cls = inst==='CORCUDEC'?'active-COR':'active-TMS';
-  instOn[inst] ? el.classList.add(cls) : el.classList.remove(cls);
+  const el = document.getElementById(INST_ID[inst]);
+  instOn[inst] ? el.classList.add(INST_CLS[inst]) : el.classList.remove(INST_CLS[inst]);
   applyFilters();
 }
 
@@ -2330,20 +2437,19 @@ function resetFilters() {
   document.getElementById('fSearch').value='';
   document.getElementById('fMin').value='';
   document.getElementById('fMax').value='';
-  instOn={CORCUDEC:true,TMS:true};
-  document.getElementById('chkCOR').classList.add('active-COR');
-  document.getElementById('chkTMS').classList.add('active-TMS');
+  instOn={CORCUDEC:true,TMS:true,CEAC:true};
+  Object.keys(INST_ID).forEach(inst => document.getElementById(INST_ID[inst]).classList.add(INST_CLS[inst]));
   applyFilters();
 }
 
 function exportCSV() {
   const data = getFiltered();
   const hdr = ['Institución','Nombre','Cargo original','Cargo homologado','Categoría','Remuneración CLP'];
-  const rows = data.map(e=>[e.inst,e.nombre,'"'+e.cargo+'"',e.cargo_hom,e.categoria,e.rem]);
+  const rows = data.map(e=>[e.inst, e.nombre, '"'+e.cargo+'"', e.cargo_hom, e.categoria, e.rem]);
   const csv = [hdr,...rows].map(r=>r.join(',')).join('\\n');
   const a = document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\\uFEFF'+encodeURIComponent(csv);
-  a.download='salarios_corcudec_tms.csv';
+  a.download='salarios_corcudec_tms_ceac.csv';
   a.click();
 }
 
