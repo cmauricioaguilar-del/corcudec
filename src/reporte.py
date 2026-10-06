@@ -1094,6 +1094,13 @@ TEMPLATE_HTML = """
     Remuneraciones en pesos chilenos (CLP) corrientes.
     Los nombres de trabajadores CORCUDEC están anonimizados en esta vista comparativa.
   </div>
+  <div style="margin-top:1.2rem;text-align:right">
+    <a href="explorador.html"
+       style="display:inline-block;background:var(--navy);color:#fff;text-decoration:none;
+              padding:0.55rem 1.3rem;border-radius:8px;font-size:0.85rem;font-weight:600;
+              letter-spacing:0.03em"
+    >🔍 Abrir Explorador de Datos →</a>
+  </div>
 </section>
 
 <section>
@@ -1873,6 +1880,487 @@ def generar_reporte(stats, genero, nivel_df, dept_df, top_df, graficas, ruta_sal
         auth_pass_hash=auth_pass_hash,
         fecha_generacion=__import__('datetime').datetime.now().strftime('%d/%m/%Y %H:%M'),
     )
+    with open(ruta_salida, 'w', encoding='utf-8') as f:
+        f.write(html)
+    return ruta_salida
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXPLORADOR DE DATOS SALARIALES
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _build_expl_data(df_corcudec):
+    emps = []
+    for i, row in df_corcudec.reset_index(drop=True).iterrows():
+        emps.append({
+            'inst': 'CORCUDEC',
+            'nombre': f'Trabajador {i+1}',
+            'cargo': row['cargo'],
+            'cargo_hom': _simplify_hom(row['cargo']),
+            'categoria': _cat_corcudec(row['nivel']),
+            'rem': int(row['total_haberes']),
+        })
+    for n, c, a, r in _TMS_RAW:
+        emps.append({
+            'inst': 'TMS',
+            'nombre': n,
+            'cargo': c,
+            'cargo_hom': _simplify_hom(_HOMOLOG.get(c, 'Sin equivalente CORCUDEC')),
+            'categoria': _cat_tms(c, a),
+            'rem': int(r),
+        })
+    return emps
+
+
+TEMPLATE_EXPL = """<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Explorador Salarial · CORCUDEC & TMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  --navy:#1C3557;--navy-light:#2a4f7c;--gold:#B8892A;--cream:#F7F4EF;
+  --red:#C0392B;--red-light:rgba(192,57,43,0.12);
+  --navy-light2:rgba(28,53,87,0.1);
+  --border:#e2ddd6;--muted:#888;--text:#2c2c2c;
+  --radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+
+/* ── LOGIN ── */
+#loginOverlay{position:fixed;inset:0;background:var(--cream);z-index:999;display:flex;align-items:center;justify-content:center}
+.login-card{background:#fff;border-radius:12px;padding:2.5rem 2rem;width:320px;box-shadow:0 4px 24px rgba(28,53,87,0.14)}
+.login-card h1{font-family:'Playfair Display',serif;color:var(--navy);font-size:1.4rem;margin-bottom:0.3rem}
+.login-card p{color:var(--muted);font-size:0.82rem;margin-bottom:1.5rem}
+.login-card label{font-size:0.8rem;font-weight:600;color:var(--navy);display:block;margin-bottom:0.3rem}
+.login-card input{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:0.5rem 0.7rem;font-size:0.92rem;margin-bottom:0.9rem;outline:none;transition:border 0.2s}
+.login-card input:focus{border-color:var(--navy)}
+.login-btn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:0.65rem;font-size:0.9rem;font-weight:600;cursor:pointer;letter-spacing:0.04em;transition:background 0.2s}
+.login-btn:hover{background:var(--navy-light)}
+#loginError{color:var(--red);font-size:0.8rem;margin-top:0.6rem;display:none;text-align:center}
+
+/* ── HEADER ── */
+#app{display:none}
+header{background:var(--navy);color:#fff;padding:0.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+header h1{font-family:'Playfair Display',serif;font-size:1.15rem;letter-spacing:0.01em}
+.header-sub{font-size:0.75rem;color:rgba(255,255,255,0.65);margin-top:0.1rem}
+.header-actions{display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap}
+.btn-back{background:transparent;border:1.5px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:0.35rem 0.85rem;font-size:0.8rem;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif}
+.btn-back:hover{background:rgba(255,255,255,0.12)}
+.btn-export{background:var(--gold);border:none;color:#fff;border-radius:6px;padding:0.35rem 0.9rem;font-size:0.8rem;font-weight:600;cursor:pointer}
+.btn-export:hover{filter:brightness(1.1)}
+
+/* ── FILTERS ── */
+.filter-bar{background:#fff;border-bottom:1.5px solid var(--border);padding:0.8rem 1.5rem;display:flex;flex-wrap:wrap;gap:0.8rem;align-items:flex-end;position:sticky;top:0;z-index:10}
+.filter-group{display:flex;flex-direction:column;gap:0.25rem}
+.filter-group label{font-size:0.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.filter-group select,.filter-group input[type=text]{border:1.5px solid var(--border);border-radius:6px;padding:0.38rem 0.6rem;font-size:0.83rem;color:var(--text);background:#fff;outline:none;min-width:140px}
+.filter-group select:focus,.filter-group input:focus{border-color:var(--navy)}
+.inst-checks{display:flex;gap:0.5rem}
+.inst-check{display:flex;align-items:center;gap:0.3rem;font-size:0.83rem;cursor:pointer;padding:0.35rem 0.65rem;border-radius:6px;border:1.5px solid var(--border);user-select:none;font-weight:500;transition:all 0.15s}
+.inst-check.active-COR{border-color:var(--navy);background:var(--navy-light2);color:var(--navy)}
+.inst-check.active-TMS{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.inst-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.range-inputs{display:flex;gap:0.3rem;align-items:center}
+.range-inputs input{width:90px;min-width:unset}
+.range-inputs span{font-size:0.75rem;color:var(--muted)}
+.btn-reset{background:none;border:1.5px solid var(--border);border-radius:6px;padding:0.38rem 0.75rem;font-size:0.8rem;color:var(--muted);cursor:pointer;align-self:flex-end}
+.btn-reset:hover{border-color:var(--navy);color:var(--navy)}
+
+/* ── SUMMARY + TABS ── */
+.meta-bar{background:var(--cream);border-bottom:1.5px solid var(--border);padding:0.55rem 1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem}
+.summary-stats{display:flex;gap:1.2rem;flex-wrap:wrap}
+.stat-pill{font-size:0.8rem;color:var(--muted)}
+.stat-pill strong{color:var(--navy);font-weight:600}
+.view-tabs{display:flex;gap:0}
+.view-tab{background:none;border:none;padding:0.45rem 1rem;font-size:0.82rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;transition:all 0.15s}
+.view-tab.active{color:var(--navy);border-bottom-color:var(--gold);font-weight:600}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto;padding:1rem 1.5rem}
+table{border-collapse:collapse;width:100%;font-size:0.83rem}
+thead th{background:var(--navy);color:#fff;padding:0.6rem 0.75rem;text-align:left;white-space:nowrap;font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0}
+thead th:hover{background:var(--navy-light)}
+thead th.sort-asc::after{content:' ↑'}
+thead th.sort-desc::after{content:' ↓'}
+tbody tr:nth-child(even){background:#faf9f6}
+tbody tr:hover{background:rgba(184,137,42,0.08)}
+td{padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);vertical-align:middle}
+td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.inst-badge{display:inline-block;padding:0.15rem 0.55rem;border-radius:12px;font-size:0.73rem;font-weight:600;letter-spacing:0.03em}
+.inst-badge.CORCUDEC{background:var(--navy-light2);color:var(--navy)}
+.inst-badge.TMS{background:var(--red-light);color:var(--red)}
+.no-data{text-align:center;padding:2rem;color:var(--muted);font-size:0.9rem}
+
+/* grouped tables */
+.grp-table td.good{color:#2E7D52;font-weight:600}
+.grp-table td.warn{color:var(--red);font-weight:600}
+.grp-table td.neutral{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h1>Explorador Salarial</h1>
+    <p>CORCUDEC & TMS · Datos confidenciales</p>
+    <label>Usuario</label>
+    <input type="text" id="eUser" placeholder="usuario" autocomplete="username">
+    <label>Contraseña</label>
+    <input type="password" id="ePass" placeholder="••••••••••" autocomplete="current-password">
+    <button class="login-btn" onclick="tryLogin()">Ingresar</button>
+    <div id="loginError">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div>
+      <h1>Explorador Salarial</h1>
+      <div class="header-sub">CORCUDEC & TMS · Datos confidenciales · Julio 2026</div>
+    </div>
+    <div class="header-actions">
+      <a class="btn-back" href="index.html">← Volver al reporte</a>
+      <button class="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+    </div>
+  </header>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>Institución</label>
+      <div class="inst-checks">
+        <div class="inst-check active-COR" id="chkCOR" onclick="toggleInst('CORCUDEC')">
+          <span class="inst-dot" style="background:#1C3557"></span>CORCUDEC
+        </div>
+        <div class="inst-check active-TMS" id="chkTMS" onclick="toggleInst('TMS')">
+          <span class="inst-dot" style="background:#C0392B"></span>TMS
+        </div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Categoría</label>
+      <select id="fCat" onchange="applyFilters()">
+        <option value="">Todas</option>
+        <option>Dirección y Gestión</option>
+        <option>Artístico / Músicos</option>
+        <option>Técnico / Escénico</option>
+        <option>Administrativo / Apoyo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Cargo homologado</label>
+      <select id="fCargo" onchange="applyFilters()"><option value="">Todos</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Buscar nombre / cargo</label>
+      <input type="text" id="fSearch" placeholder="texto libre…" oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Rango remuneración</label>
+      <div class="range-inputs">
+        <input type="number" id="fMin" placeholder="Mín" step="100000" oninput="applyFilters()">
+        <span>—</span>
+        <input type="number" id="fMax" placeholder="Máx" step="100000" oninput="applyFilters()">
+      </div>
+    </div>
+    <button class="btn-reset" onclick="resetFilters()">↺ Limpiar</button>
+  </div>
+
+  <!-- META + TABS -->
+  <div class="meta-bar">
+    <div class="summary-stats" id="summaryBar"></div>
+    <div class="view-tabs">
+      <button class="view-tab active" onclick="switchView('detalle',this)">Detalle individual</button>
+      <button class="view-tab" onclick="switchView('cargo',this)">Por cargo</button>
+      <button class="view-tab" onclick="switchView('categoria',this)">Por categoría</button>
+    </div>
+  </div>
+
+  <!-- VIEWS -->
+  <div id="viewDetalle" class="tbl-wrap">
+    <table id="tblDetalle">
+      <thead><tr>
+        <th onclick="sortBy('n')">#</th>
+        <th onclick="sortBy('inst')">Institución</th>
+        <th onclick="sortBy('nombre')">Nombre</th>
+        <th onclick="sortBy('cargo')">Cargo original</th>
+        <th onclick="sortBy('cargo_hom')">Cargo homologado</th>
+        <th onclick="sortBy('categoria')">Categoría</th>
+        <th onclick="sortBy('rem')">Remuneración</th>
+      </tr></thead>
+      <tbody id="tbodyDetalle"></tbody>
+    </table>
+  </div>
+
+  <div id="viewCargo" class="tbl-wrap" style="display:none">
+    <table id="tblCargo" class="grp-table">
+      <thead><tr>
+        <th>Cargo homologado</th>
+        <th colspan="3" style="text-align:center;background:#1C3557">CORCUDEC</th>
+        <th colspan="3" style="text-align:center;background:#C0392B">TMS</th>
+        <th>Δ Mediana</th>
+      </tr>
+      <tr>
+        <th></th>
+        <th>n</th><th>Mediana</th><th>Rango</th>
+        <th>n</th><th>Mediana</th><th>Rango</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbodyCargo"></tbody>
+    </table>
+  </div>
+
+  <div id="viewCategoria" class="tbl-wrap" style="display:none">
+    <table id="tblCategoria" class="grp-table">
+      <thead><tr>
+        <th>Categoría</th>
+        <th colspan="3" style="text-align:center;background:#1C3557">CORCUDEC</th>
+        <th colspan="3" style="text-align:center;background:#C0392B">TMS</th>
+        <th>Δ Mediana</th>
+      </tr>
+      <tr>
+        <th></th>
+        <th>n</th><th>Mediana</th><th>Rango</th>
+        <th>n</th><th>Mediana</th><th>Rango</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tbodyCategoria"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const U_HASH = '{{ auth_user_hash }}';
+const P_HASH = '{{ auth_pass_hash }}';
+
+async function sha256(s) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function tryLogin() {
+  const u = document.getElementById('eUser').value.trim();
+  const p = document.getElementById('ePass').value;
+  const [uh, ph] = await Promise.all([sha256(u), sha256(p)]);
+  if (uh===U_HASH && ph===P_HASH) {
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('app').style.display='block';
+  } else {
+    document.getElementById('loginError').style.display='block';
+  }
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+const ALL_EMPS = {{ emps_json }};
+
+const fmtClp = v => '$'+Math.round(v).toLocaleString('es-CL');
+const fmtM   = v => '$'+(v/1e6).toFixed(2)+'M';
+function median(arr) {
+  if (!arr.length) return null;
+  const s=[...arr].sort((a,b)=>a-b);
+  return s.length%2===0?(s[s.length/2-1]+s[s.length/2])/2:s[Math.floor(s.length/2)];
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let instOn = {CORCUDEC:true, TMS:true};
+let sortKey = 'rem', sortDir = -1;
+let currentView = 'detalle';
+
+// Populate cargo dropdown
+(function(){
+  const set = [...new Set(ALL_EMPS.map(e=>e.cargo_hom))].sort((a,b)=>a.localeCompare(b,'es'));
+  const sel = document.getElementById('fCargo');
+  set.forEach(c=>{ const o=document.createElement('option'); o.value=o.textContent=c; sel.appendChild(o); });
+})();
+
+function getFiltered() {
+  const cat   = document.getElementById('fCat').value;
+  const cargo = document.getElementById('fCargo').value;
+  const q     = document.getElementById('fSearch').value.toLowerCase();
+  const mn    = parseFloat(document.getElementById('fMin').value)||0;
+  const mx    = parseFloat(document.getElementById('fMax').value)||Infinity;
+  return ALL_EMPS.filter(e =>
+    instOn[e.inst] &&
+    (!cat   || e.categoria===cat) &&
+    (!cargo || e.cargo_hom===cargo) &&
+    (!q     || e.nombre.toLowerCase().includes(q) || e.cargo.toLowerCase().includes(q) || e.cargo_hom.toLowerCase().includes(q)) &&
+    e.rem>=mn && e.rem<=mx
+  );
+}
+
+function applyFilters() {
+  const data = getFiltered();
+  updateSummary(data);
+  if (currentView==='detalle')   renderDetalle(data);
+  if (currentView==='cargo')     renderCargo(data);
+  if (currentView==='categoria') renderCategoria(data);
+}
+
+function updateSummary(data) {
+  const rems = data.map(e=>e.rem);
+  const med  = median(rems);
+  const nCOR = data.filter(e=>e.inst==='CORCUDEC').length;
+  const nTMS = data.filter(e=>e.inst==='TMS').length;
+  document.getElementById('summaryBar').innerHTML =
+    `<span class="stat-pill">Total: <strong>${data.length}</strong></span>
+     <span class="stat-pill">CORCUDEC: <strong>${nCOR}</strong></span>
+     <span class="stat-pill">TMS: <strong>${nTMS}</strong></span>` +
+    (med ? `<span class="stat-pill">Mediana: <strong>${fmtClp(Math.round(med))}</strong></span>` : '') +
+    (rems.length ? `<span class="stat-pill">Rango: <strong>${fmtClp(Math.min(...rems))} — ${fmtClp(Math.max(...rems))}</strong></span>` : '');
+}
+
+// ── DETALLE ───────────────────────────────────────────────────────────────
+function renderDetalle(data) {
+  const sorted = [...data].sort((a,b) => {
+    const va = sortKey==='n' ? 0 : a[sortKey];
+    const vb = sortKey==='n' ? 0 : b[sortKey];
+    if (typeof va==='number') return sortDir*(va-vb);
+    return sortDir*String(va).localeCompare(String(vb),'es');
+  });
+  document.getElementById('tbodyDetalle').innerHTML = sorted.length
+    ? sorted.map((e,i)=>`<tr>
+        <td>${i+1}</td>
+        <td><span class="inst-badge ${e.inst}">${e.inst}</span></td>
+        <td>${e.nombre}</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${e.cargo}">${e.cargo}</td>
+        <td>${e.cargo_hom}</td>
+        <td>${e.categoria}</td>
+        <td class="num">${fmtClp(e.rem)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" class="no-data">No hay registros que coincidan con los filtros.</td></tr>';
+
+  // Update sort indicators
+  document.querySelectorAll('#tblDetalle thead th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+  });
+}
+
+let _cols = ['n','inst','nombre','cargo','cargo_hom','categoria','rem'];
+function sortBy(key) {
+  if (sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=-1; }
+  const th = document.querySelectorAll('#tblDetalle thead th');
+  const idx = _cols.indexOf(key);
+  th.forEach((t,i)=>{ t.classList.remove('sort-asc','sort-desc'); if(i===idx) t.classList.add(sortDir===1?'sort-asc':'sort-desc'); });
+  applyFilters();
+}
+
+// ── POR CARGO ─────────────────────────────────────────────────────────────
+function renderCargo(data) {
+  const cargos = [...new Set(data.map(e=>e.cargo_hom))].sort((a,b)=>a.localeCompare(b,'es'));
+  if (!cargos.length) { document.getElementById('tbodyCargo').innerHTML='<tr><td colspan="8" class="no-data">Sin datos.</td></tr>'; return; }
+  document.getElementById('tbodyCargo').innerHTML = cargos.map(c=>{
+    const cor = data.filter(e=>e.inst==='CORCUDEC'&&e.cargo_hom===c).map(e=>e.rem);
+    const tms = data.filter(e=>e.inst==='TMS'&&e.cargo_hom===c).map(e=>e.rem);
+    const mc  = median(cor), mt = median(tms);
+    let diff='—', cls='neutral';
+    if (mc&&mt) {
+      const pct=((mt-mc)/mc*100).toFixed(1);
+      diff=(pct>0?'+':'')+pct+'%';
+      cls = pct>10?'good':pct<-10?'warn':'neutral';
+    }
+    const rng = a => a.length?fmtClp(Math.min(...a))+' – '+fmtClp(Math.max(...a)):'—';
+    return `<tr>
+      <td><strong>${c}</strong></td>
+      <td>${cor.length||'—'}</td>
+      <td class="num">${mc?fmtClp(Math.round(mc)):'—'}</td>
+      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(cor)}</td>
+      <td>${tms.length||'—'}</td>
+      <td class="num">${mt?fmtClp(Math.round(mt)):'—'}</td>
+      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(tms)}</td>
+      <td class="num ${cls}">${diff}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── POR CATEGORÍA ─────────────────────────────────────────────────────────
+function renderCategoria(data) {
+  const CATS=['Dirección y Gestión','Artístico / Músicos','Técnico / Escénico','Administrativo / Apoyo'];
+  document.getElementById('tbodyCategoria').innerHTML = CATS.map(cat=>{
+    const cor = data.filter(e=>e.inst==='CORCUDEC'&&e.categoria===cat).map(e=>e.rem);
+    const tms = data.filter(e=>e.inst==='TMS'&&e.categoria===cat).map(e=>e.rem);
+    const mc  = median(cor), mt = median(tms);
+    let diff='—', cls='neutral';
+    if (mc&&mt) {
+      const pct=((mt-mc)/mc*100).toFixed(1);
+      diff=(pct>0?'+':'')+pct+'%';
+      cls = pct>10?'good':pct<-10?'warn':'neutral';
+    }
+    const rng = a => a.length?fmtClp(Math.min(...a))+' – '+fmtClp(Math.max(...a)):'—';
+    return `<tr>
+      <td><strong>${cat}</strong></td>
+      <td>${cor.length||'—'}</td>
+      <td class="num">${mc?fmtClp(Math.round(mc)):'—'}</td>
+      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(cor)}</td>
+      <td>${tms.length||'—'}</td>
+      <td class="num">${mt?fmtClp(Math.round(mt)):'—'}</td>
+      <td class="num" style="font-size:0.75rem;color:var(--muted)">${rng(tms)}</td>
+      <td class="num ${cls}">${diff}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────
+function toggleInst(inst) {
+  instOn[inst] = !instOn[inst];
+  const el = document.getElementById('chk'+inst.slice(0,3));
+  const cls = inst==='CORCUDEC'?'active-COR':'active-TMS';
+  instOn[inst] ? el.classList.add(cls) : el.classList.remove(cls);
+  applyFilters();
+}
+
+function switchView(v, btn) {
+  currentView = v;
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  ['detalle','cargo','categoria'].forEach(n=>{
+    document.getElementById('view'+n.charAt(0).toUpperCase()+n.slice(1)).style.display = n===v?'':'none';
+  });
+  applyFilters();
+}
+
+function resetFilters() {
+  document.getElementById('fCat').value='';
+  document.getElementById('fCargo').value='';
+  document.getElementById('fSearch').value='';
+  document.getElementById('fMin').value='';
+  document.getElementById('fMax').value='';
+  instOn={CORCUDEC:true,TMS:true};
+  document.getElementById('chkCOR').classList.add('active-COR');
+  document.getElementById('chkTMS').classList.add('active-TMS');
+  applyFilters();
+}
+
+function exportCSV() {
+  const data = getFiltered();
+  const hdr = ['Institución','Nombre','Cargo original','Cargo homologado','Categoría','Remuneración CLP'];
+  const rows = data.map(e=>[e.inst,e.nombre,'"'+e.cargo+'"',e.cargo_hom,e.categoria,e.rem]);
+  const csv = [hdr,...rows].map(r=>r.join(',')).join('\\n');
+  const a = document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\\uFEFF'+encodeURIComponent(csv);
+  a.download='salarios_corcudec_tms.csv';
+  a.click();
+}
+
+// Init
+applyFilters();
+</script>
+</body>
+</html>"""
+
+
+def generar_explorador(df_corcudec, ruta_salida, auth_user_hash='', auth_pass_hash=''):
+    emps = _build_expl_data(df_corcudec)
+    emps_json = json.dumps(emps, ensure_ascii=False)
+    tpl = Template(TEMPLATE_EXPL)
+    html = tpl.render(emps_json=emps_json,
+                      auth_user_hash=auth_user_hash,
+                      auth_pass_hash=auth_pass_hash)
     with open(ruta_salida, 'w', encoding='utf-8') as f:
         f.write(html)
     return ruta_salida

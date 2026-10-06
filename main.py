@@ -17,7 +17,7 @@ from src.visualizaciones import (
     grafica_salario_por_nivel, grafica_equidad_genero,
     grafica_bandas_salariales, grafica_componentes_haberes,
 )
-from src.reporte import generar_reporte
+from src.reporte import generar_reporte, generar_explorador
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'data', 'dotacion_julio2026.csv')
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'output')
@@ -55,6 +55,12 @@ def main():
         auth_pass_hash=_sha256('Corcudec2026'),
     )
     print(f"\n✓ Reporte generado: {ruta}")
+
+    OUTPUT_EXPL = os.path.join(OUTPUT_DIR, 'explorador.html')
+    generar_explorador(df, OUTPUT_EXPL,
+                       auth_user_hash=_sha256('admin'),
+                       auth_pass_hash=_sha256('Corcudec2026'))
+    print(f"✓ Explorador generado: {OUTPUT_EXPL}")
 
     print("\n=== RESUMEN ===")
     print(f"  Trabajadores:        {stats['total_empleados']}")
